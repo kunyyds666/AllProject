@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../plugins/element-ui/index.css"/>
+    <link rel="stylesheet" href="../styles/common.css"/>
+    <link rel="stylesheet" href="../styles/page.css"/>
+</head>
+<body>
+<div class="addBrand-container" id="food-add-app">
+    <div class="container">
+        <el-form
+                ref="ruleForm"
+                :model="ruleForm"
+                :rules="rules"
+                :inline="true"
+                label-width="180px"
+                class="demo-ruleForm"
+        >
+            <div>
+                <el-button
+                        type="primary"
+                        icon="el-icon-arrow-left"
+                        onclick="window.location.href='list.html'"
+                >
+                </el-button>
+            </div>
+            <div>
+                <el-form-item label="品牌:" prop="brand">
+                    <el-input
+                            v-model="ruleForm.brand"
+                            placeholder="请填写品牌"
+                            maxlength="20"></el-input>
+                </el-form-item>
+            </div>
+            <div>
+                <el-form-item label="汽车类型:" prop="bodytype">
+                    <el-input
+                            v-model="ruleForm.bodytype"
+                            placeholder="请设置汽车类型"></el-input>
+                </el-form-item>
+            </div>
+            <div>
+                <el-form-item label="燃油类型:" prop="fueltype">
+                    <el-input
+                            v-model="ruleForm.fueltype"
+                            placeholder="请设置燃油类型"></el-input>
+                </el-form-item>
+            </div>
+            <div>
+                <el-form-item label="发动机功率:" prop="power">
+                    <el-input
+                            v-model="ruleForm.power"
+                            placeholder="请设置发动机功率"></el-input>
+                </el-form-item>
+            </div>
+            <div>
+                <el-form-item label="万公里数:" prop="kilometer">
+                    <el-input
+                            v-model="ruleForm.kilometer"
+                            placeholder="请设置万公里数"></el-input>
+                </el-form-item>
+            </div>
+            <div>
+                <el-form-item label="地区:" prop="regioncode">
+                    <el-input
+                            v-model="ruleForm.regioncode"
+                            placeholder="请设置地区"></el-input>
+                </el-form-item>
+            </div>
+            <div>
+                <el-form-item label="价格:" prop="price">
+                    <el-input
+                            v-model="ruleForm.price"
+                            placeholder="请设置价格"></el-input>
+                </el-form-item>
+            </div>
+            <div class="subBox address">
+                <el-form-item>
+                    <el-button
+                            type="primary"
+                            @click="submitForm('ruleForm')"
+                    >
+                        提交
+                    </el-button>
+                </el-form-item>
+            </div>
+        </el-form>
+    </div>
+</div>
+<script src="../plugins/vue/vue.js"></script>
+<script src="../plugins/element-ui/index.js"></script>
+<script src="../plugins/axios/axios.min.js"></script>
+<script src="../js/request.js"></script>
+<script src="../js/validate.js"></script>
+<script src="../js/index.js"></script>
+<script src="../api/usedCar.js"></script>
+<script>
+    new Vue({
+        el: '#food-add-app',
+        data() {
+            return {
+                ruleForm: {
+                    saleid: '',
+                    brand: '',
+                    bodytype: '',
+                    fueltype: '',
+                    power: '',
+                    kilometer: '',
+                    regioncode: '',
+                    price: ''
+                },
+                rules: {
+                    brand: [
+                        { required: true, message: '请输入品牌', trigger: 'blur' }
+                    ],
+                    bodytype: [
+                        { required: true, message: '请输入汽车类型', trigger: 'blur' }
+                    ],
+                    fueltype: [
+                        { required: true, message: '请输入燃油类型', trigger: 'blur' }
+                    ],
+                    power: [
+                        { required: true, message: '请输入发动机功率', trigger: 'blur' }
+                    ],
+                    kilometer: [
+                        { required: true, message: '请输入万公里数', trigger: 'blur' }
+                    ],
+                    regioncode: [
+                        { required: true, message: '请输入地区', trigger: 'blur' }
+                    ],
+                    price: [
+                        { required: true, message: '请输入价格', trigger: 'blur' }
+                    ],
+                }
+            };
+        },
+        mounted() {
+            this.loadUrlParameters();
+        },
+        methods: {
+            getUrlParameter(name) {
+                name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+                var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+                var results = regex.exec(location.search);
+                return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+            },
+            loadUrlParameters() {
+                this.ruleForm.saleid = this.getUrlParameter('saleid');
+                this.ruleForm.brand = this.getUrlParameter('brand');
+                this.ruleForm.bodytype = this.getUrlParameter('bodytype');
+                this.ruleForm.fueltype = this.getUrlParameter('fueltype');
+                this.ruleForm.power = this.getUrlParameter('power');
+                this.ruleForm.kilometer = this.getUrlParameter('kilometer');
+                this.ruleForm.regioncode = this.getUrlParameter('regioncode');
+                this.ruleForm.price = this.getUrlParameter('price');
+            },
+            submitForm(formName) {
+                this.$refs[formName].validate((valid) => {
+                    if (valid) {
+                        if (this.ruleForm.saleid) {
+                            this.updateUsedCar();
+                        } else {
+                            this.addUsedCar();
+                        }
+                    } else {
+                        console.log('error submit!!');
+                        return false;
+                    }
+                });
+            },
+            addUsedCar() {
+                addUsedCar(this.ruleForm).then(response => {
+                    this.$message.success('新增成功');
+                    window.location.href = 'list.html';
+                }).catch(error => {
+                    this.$message.error('请求出错了：' + error);
+                });
+            },
+            updateUsedCar() {
+                updateUsedCar(this.ruleForm).then(response => {
+
+                        this.$message.success('修改成功');
+                        //window.location.href = 'list.html';
+
+                }).catch(error => {
+                    this.$message.error('请求出错了：' + error);
+                });
+            }
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../plugins/element-ui/index.css"/>
+    <link rel="stylesheet" href="../styles/common.css"/>
+    <link rel="stylesheet" href="../styles/page.css"/>
+</head>
+<body>
+<div class="dashboard-container" id="food-app">
+    <div class="container">
+        <div class="tableBar">
+            <el-input
+                    v-model="input"
+                    placeholder="请输入查询信息"
+                    style="width: 250px"
+                    clearable
+                    @keyup.enter.native="handleQuery"
+            >
+
+                <i
+                        slot="prefix"
+                        class="el-input__icon el-icon-search"
+                        style="cursor: pointer"
+                        @click="init"
+                ></i>
+            </el-input>
+            <el-button type="primary" onclick="window.location.href='allchart.html'">主要按钮</el-button>
+            <div class="tableLab">
+                <span class="span-btn delBut non" @click="deleteHandle('批量', null)">批量删除</span>
+                <el-button
+                        type="primary"
+                        @click="addData('add')"
+                        onclick="window.location.href='add.html'"
+                >
+                    + 新增数据
+                </el-button>
+            </div>
+        </div>
+        <el-table
+                :data="tableData"
+                stripe
+                class="tableBox"
+                @selection-change="handleSelectionChange"
+        >
+            <el-table-column
+                    type="selection"
+                    width="25"
+            ></el-table-column>
+            <el-table-column prop="saleid" label="交易ID"></el-table-column>
+            <el-table-column prop="brand" label="品牌"></el-table-column>
+            <el-table-column prop="bodytype"
+                             label="汽车类型"
+                             column-key="date"
+                             :filters="[{text: '豪华轿车', value: '0'},
+                                        {text: '微型车', value: '1'},
+                                        {text: '厢型车', value: '2'},
+                                        {text: '大巴车', value: '3'},
+                                        {text: '敞篷车',value: '3'},
+                                        {text: '双门汽车',value: '4'},
+                                        {text: ' 商务车',value: '6'},
+                                        {text: '搅拌车',value: '7'}]"
+                             :filter-method="filterHandler">
+                <template slot-scope="scope">
+                    <span style="margin-right: 10px;">
+                        {{ getCarType(scope.row.bodytype) }}
+                    </span>
+                </template>
+            </el-table-column>
+            <el-table-column prop="fueltype" label="燃油类型"></el-table-column>
+            <el-table-column prop="power" label="发动机功率"></el-table-column>
+            <el-table-column prop="kilometer" label="万公里数"></el-table-column>
+            <el-table-column prop="regioncode" label="地区"></el-table-column>
+            <el-table-column prop="price" label="价格" sortable></el-table-column>
+            <el-table-column label="操作" width="160" align="center">
+                <template slot-scope="scope">
+                    <el-button
+                            type="text"
+                            size="small"
+                            class="blueBug"
+                            @click="jumpToB(scope.row.saleid,scope.row.brand,scope.row.bodytype,scope.row.fueltype,scope.row.power,scope.row.kilometer,scope.row.regioncode,scope.row.price)">
+                        修改
+
+                    </el-button>
+                    <el-button
+                            type="text"
+                            size="small"
+                            class="delBut non"
+                            @click="deleteHandle('单删', scope.row.saleid)"
+                    >
+                        删除
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <el-pagination
+                class="pageList"
+                :page-sizes="[10, 20, 30, 40]"
+                :page-size="pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="counts"
+                @size-change="handleSizeChange"
+                :current-page.sync="page"
+                @current-change="handleCurrentChange"
+        ></el-pagination>
+    </div>
+</div>
+<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+<script src="../plugins/vue/vue.js"></script>
+<!-- 引入组件库 -->
+<script src="../plugins/element-ui/index.js"></script>
+<!-- 引入axios -->
+<script src="../plugins/axios/axios.min.js"></script>
+<script src="../js/request.js"></script>
+<script src="../api/usedCar.js"></script>
+<script>
+    new Vue({
+        el: '#food-app',
+        data() {
+            return {
+                input: '',
+                counts: 0,
+                page: 1,
+                pageSize: 10,
+                tableData: [],
+                checkList: [],
+
+
+
+            }
+        },
+        created() {
+            this.init()
+        },
+        mounted() {
+        },
+        methods: {
+
+            // 删除
+            deleteHandle(type, saleid) {
+                if (type === '批量' && saleid === null) {
+                    if (this.checkList.length === 0) {
+                        return this.$message.error('请选择删除对象')
+                    }
+                }
+                this.$confirm('确认删除该交易记录, 是否继续?', '确定删除', {
+                    'confirmButtonText': '确定',
+                    'cancelButtonText': '取消',
+                }).then(() => {
+                    deleteUsedCar(type === '批量' ? this.checkList.join(',') : saleid).then(res => {
+                        if (res.code === 1) {
+                            this.$message.success('删除成功！')
+                            this.handleQuery()
+                        } else {
+                            this.$message.error(res.msg || '操作失败')
+                        }
+                    }).catch(err => {
+                        this.$message.error('请求出错了：' + err)
+                    })
+                })
+            },
+            //初始化
+            async init() {
+                const params = {
+                    page: this.page,
+                    pageSize: this.pageSize,
+                    saleid: this.input ? this.input : undefined
+                }
+                await getUsedCarPage(params).then(res => {
+                    if (String(res.code) === '1') {
+                        this.tableData = res.data.records || []
+                        this.counts = res.data.total
+                    }
+                }).catch(err => {
+                    this.$message.error('请求出错了：' + err)
+                })
+            },
+
+            jumpToB(saleid,brand,bodytype,fueltype,power,kolimeter,region,price) {
+                    // 构建带参数的 URL
+                    var url = 'add.html?' +
+                        'saleid=' + saleid +
+                        '&brand=' + brand +
+                        '&bodytype=' + bodytype +
+                        '&fueltype=' + fueltype +
+                        '&power=' + power +
+                        '&kilometer=' + kolimeter +
+                        '&regioncode=' + region +
+                        '&price=' + price;
+
+                    // 执行页面跳转
+                    window.location.href = url;
+
+            },
+            //查询
+            handleQuery() {
+                this.page = 1;
+                this.init();
+            },
+            //数据映射
+            getCarType(bodytype) {
+                const carTypes = {
+                    '0': '豪华轿车',
+                    '1': '微型车',
+                    '2': '厢型车',
+                    '3': '大巴车',
+                    '4': '敞篷车',
+                    '5': '双门汽车',
+                    '6': '商务车',
+                    '7': '搅拌车'
+                };
+                return carTypes[bodytype] || '';
+            },
+            // 全部操作
+            handleSelectionChange(val) {
+                let checkArr = []
+                val.forEach((n) => {
+                    checkArr.push(n.saleid)
+                })
+                this.checkList = checkArr
+            },
+            handleSizeChange(val) {
+                this.pageSize = val
+                this.init()
+            },
+            handleCurrentChange(val) {
+                this.page = val
+                this.init()
+            }
+
+
+        }
+    })
+</script>
+
+
+</body>
+</html>
