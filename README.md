@@ -1,0 +1,884 @@
+
+## 1、给定数据（excel数据等）；
+
+`‪X:\data\PythonData\used_car_train_20200313.csv`
+
+## 2、数据导出数据清洗之后的excel；
+
+将数据用DataFrame转换成excel
+
+```python
+import pandas as pd
+
+# 加载 CSV 文件，指定空格作为分隔符
+file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.csv'
+df = pd.read_csv(file_path, sep=' ')
+
+# 保存为 Excel 文件
+excel_file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+df.to_excel(excel_file_path, index=False)
+
+print("处理后的数据已保存到 Excel 文件中。")
+```
+
+## 3、数据清洗；
+
+对数据进行删除不需要的部分
+
+```python
+import pandas as pd
+import numpy as np
+
+# 加载 Excel 文件
+excel_file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+df = pd.read_excel(excel_file_path)
+
+# 删除包含空数据的行
+df.dropna(inplace=True)
+
+# 删除 seller 和 offerType 列
+columns_to_drop = ['seller', 'offerType']
+df.drop(columns=columns_to_drop, inplace=True)
+
+# 保存更新后的 Excel 文件
+cleaned_excel_file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+df.to_excel(cleaned_excel_file_path, index=False)
+
+print("数据清洗完成，已保存到更新后的 Excel 文件中。")
+```
+
+对删除数据中空缺，补充数据中错误部分
+
+## 4、数据分析；
+
+```python
+import pandas as pd
+
+# 加载 Excel 文件
+excel_file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+train_data = pd.read_excel(excel_file_path)
+
+# 使用 .info() 方法查看数据类型和数据量
+train_data.info()
+```
+
+![](.images/3kqn0ptRsOXNw.png)
+
+
+
+## 5、特征提取；
+
+**日期特征提取**：从 `regDate` 和 `creatDate` 中提取年、月、日
+
+```python
+import pandas as pd
+
+# 加载 Excel 文件
+excel_file_path = 'X:\\data\\PythonData\\used_car_train_20200313_final_processed.xlsx'
+df = pd.read_excel(excel_file_path)
+
+# 转换日期列
+df['regDate'] = pd.to_datetime(df['regDate'], format='%Y%m%d', errors='coerce')
+df['creatDate'] = pd.to_datetime(df['creatDate'], format='%Y%m%d', errors='coerce')
+
+# 提取年、月、日
+df['regYear'] = df['regDate'].dt.year
+df['regMonth'] = df['regDate'].dt.month
+df['regDay'] = df['regDate'].dt.day
+
+df['creatYear'] = df['creatDate'].dt.year
+df['creatMonth'] = df['creatDate'].dt.month
+df['creatDay'] = df['creatDate'].dt.day
+
+# 删除原日期列
+df = df.drop(columns=['regDate', 'creatDate'])
+
+# 处理后的数据
+print(df.head())
+
+```
+
+计算车龄
+
+```python
+# 计算车龄
+df['carAge'] = df['creatYear'] - df['regYear']
+
+# 处理后的数据
+print(df.head())
+```
+
+## 6、数据建模；
+
+要确定哪个特征对车价格的影响最大，可以通过多种方法来进行分析。以下是一个常用的方法：使用线性回归模型并分析各个特征的系数。此外，也可以使用其他回归模型（如随机森林回归）并分析特征重要性。
+
+### 使用线性回归模型进行分析
+
+以下是使用 Python 的 `pandas` 和 `sklearn` 库进行特征重要性分析的步骤：
+
+1. **加载数据并进行预处理**。
+2. **将特征和目标变量分开**。
+3. **训练线性回归模型**。
+4. **分析特征的重要性**。
+
+#### 1. 加载数据并进行预处理
+
+```python
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+
+# 加载处理后的 Excel 文件
+file_path = 'X:\\data\\PythonData\\used_car_train_20200313_feature_extracted.xlsx'
+df = pd.read_excel(file_path)
+
+# 检查数据
+print(df.head())
+
+# 分离特征和目标变量
+X = df.drop(columns=['price'])
+y = df['price']
+
+# 标准化特征数据
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 创建和训练线性回归模型
+model = LinearRegression()
+model.fit(X_scaled, y)
+
+# 获取特征的重要性（即系数）
+feature_importance = model.coef_
+
+# 将特征名称和其对应的重要性值结合起来
+feature_names = X.columns
+importance_df = pd.DataFrame({
+    'Feature': feature_names,
+    'Importance': feature_importance
+})
+
+# 按重要性值绝对值排序
+importance_df['AbsImportance'] = importance_df['Importance'].abs()
+importance_df = importance_df.sort_values(by='AbsImportance', ascending=False).drop(columns=['AbsImportance'])
+
+# 打印特征重要性
+print(importance_df)
+
+```
+
+![](.images/nk5GFpWbuVGUI.png)
+
+
+
+#### 2. 分离特征和目标变量
+
+在这一步中，我们将特征数据与目标变量（价格）分开，以便进行模型训练。
+
+#### 3. 训练线性回归模型
+
+使用线性回归模型来训练数据，并获得每个特征的系数。
+
+#### 4. 分析特征的重要性
+
+通过分析线性回归模型的系数，我们可以确定每个特征对目标变量（价格）的影响大小。系数的绝对值越大，表示该特征对价格的影响越大。
+
+
+
+### 使用随机森林回归模型进行分析
+
+如果想使用更复杂的模型，可以考虑使用随机森林回归模型来计算特征重要性。
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+
+# 创建和训练随机森林回归模型
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X, y)
+
+# 获取特征重要性
+rf_importance = rf_model.feature_importances_
+
+# 将特征名称和其对应的重要性值结合起来
+rf_importance_df = pd.DataFrame({
+    'Feature': feature_names,
+    'Importance': rf_importance
+})
+
+# 按重要性值排序
+rf_importance_df = rf_importance_df.sort_values(by='Importance', ascending=False)
+
+# 打印特征重要性
+print(rf_importance_df)
+
+```
+
+
+
+<img src=".images/oraK6JT9h8ccZ.png" alt="" height="360"/>
+
+
+
+
+
+## 7、数据可视化；
+
+```python
+# feature_importance_calculation.py
+
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+
+# 文件路径
+file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+
+# 检查文件是否存在并加载
+print("正在加载文件...")
+try:
+    df = pd.read_excel(file_path)
+    print("文件加载成功！")
+except FileNotFoundError:
+    print(f"文件未找到，请检查路径: {file_path}")
+    exit()
+
+# 分离特征和目标变量
+print("正在分离特征和目标变量...")
+X = df.drop(columns=['price'])
+y = df['price']
+print("分离完成！")
+
+# 标准化特征数据
+print("正在标准化特征数据...")
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+print("标准化完成！")
+
+# 线性回归模型
+print("正在训练线性回归模型...")
+model = LinearRegression()
+model.fit(X_scaled, y)
+print("线性回归模型训练完成！")
+
+# 获取特征的重要性（即系数）
+print("获取线性回归模型特征的重要性...")
+feature_importance = model.coef_
+
+# 将特征名称和其对应的重要性值结合起来
+feature_names = X.columns
+importance_df = pd.DataFrame({
+    'Feature': feature_names,
+    'Importance': feature_importance
+})
+
+# 按重要性值绝对值排序
+importance_df['AbsImportance'] = importance_df['Importance'].abs()
+importance_df = importance_df.sort_values(by='AbsImportance', ascending=False).drop(columns=['AbsImportance'])
+
+# 保存线性回归特征重要性结果
+importance_df.to_csv('linear_regression_feature_importance.csv', index=False)
+print("线性回归特征重要性结果已保存到 'linear_regression_feature_importance.csv'")
+
+# 随机森林回归模型
+print("正在训练随机森林回归模型...")
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X, y)
+print("随机森林回归模型训练完成！")
+
+# 获取特征重要性
+print("获取随机森林模型特征的重要性...")
+rf_importance = rf_model.feature_importances_
+
+# 将特征名称和其对应的重要性值结合起来
+rf_importance_df = pd.DataFrame({
+    'Feature': feature_names,
+    'Importance': rf_importance
+})
+
+# 按重要性值排序
+rf_importance_df = rf_importance_df.sort_values(by='Importance', ascending=False)
+
+# 保存随机森林特征重要性结果
+rf_importance_df.to_csv('random_forest_feature_importance.csv', index=False)
+print("随机森林特征重要性结果已保存到 'random_forest_feature_importance.csv'")
+
+```
+
+```python
+# feature_importance_visualization.py
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 读取线性回归特征重要性结果
+print("正在读取线性回归特征重要性结果...")
+linear_importance_df = pd.read_csv('linear_regression_feature_importance.csv')
+print("线性回归特征重要性结果读取完成！")
+
+# 生成线性回归特征重要性可视化图
+print("生成线性回归特征重要性可视化图...")
+plt.figure(figsize=(10, 8))
+sns.barplot(x='Importance', y='Feature', data=linear_importance_df)
+plt.title('Feature Importance from Linear Regression')
+plt.xlabel('Coefficient Value')
+plt.ylabel('Feature')
+plt.show()
+print("线性回归特征重要性可视化图生成完成！")
+
+# 读取随机森林特征重要性结果
+print("正在读取随机森林特征重要性结果...")
+rf_importance_df = pd.read_csv('random_forest_feature_importance.csv')
+print("随机森林特征重要性结果读取完成！")
+
+# 生成随机森林特征重要性可视化图
+print("生成随机森林特征重要性可视化图...")
+plt.figure(figsize=(10, 8))
+sns.barplot(x='Importance', y='Feature', data=rf_importance_df)
+plt.title('Feature Importance from Random Forest')
+plt.xlabel('Importance')
+plt.ylabel('Feature')
+plt.show()
+print("随机森林特征重要性可视化图生成完成！")
+
+```
+
+
+
+
+
+![](.images/ibrDwQp1zIoGt.png)
+
+![](.images/UURUuJRhkM5hJ.png)
+
+
+
+
+
+```python
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# 读取数据文件
+file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+df = pd.read_excel(file_path)
+
+# 计算相关系数矩阵
+correlation_matrix = df.corr()
+
+# 生成热力图
+plt.figure(figsize=(12, 10))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=.5)
+plt.title('Correlation Heatmap of Car Features')
+plt.show()
+
+```
+
+![](.images/TqMv0YjOccjSa.png)
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib
+
+# 设置中文字体路径，根据你的系统和字体文件路径进行修改
+font_path = 'C:/Windows/Fonts/msyh.ttc'  # 示例中使用微软雅黑字体
+
+# 设置字体属性
+plt.rcParams['font.family'] = 'Microsoft YaHei'  # 设置全局字体为微软雅黑
+plt.rcParams['font.size'] = 12  # 设置全局字体大小
+
+# 文件路径
+file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+
+# 加载数据集
+df = pd.read_excel(file_path)
+
+# 为品牌取别名
+brand_aliases = {
+    0: '哦迪', 1: '笨驰', 2: '短安', 3: '蜂田', 4: '包骂', 5: '扶特', 6: '学佛兰', 7: '鹿虎', 8: '骂自打', 9: '日崇',
+    10: '汽鸭', 11: '死爬虫', 12: '现台', 13: '类可三思', 14: '握尔沃', 15: '非亚特', 16: '灵蛇', 17: '别哭', 18: '打重',
+    19: '表智', 20: '学铁笼', 21: '接抱', 22: '压马哈', 23: '残利', 24: '鹿特司', 25: '发辣哩', 26: '握口哦号',
+    27: '啊三顿·骂丁', 28: '不加底', 29: '啊尔发·罗迷瓯', 30: '懒薄基尼', 31: '啊三顿·骂丁', 32: '发辣哩',
+    33: '握尔沃', 34: '扶特', 35: '笨驰', 36: '包骂', 37: '打重', 38: '狂犬', 39: '飞火'
+}
+
+# 替换品牌列为别名
+df['brand'] = df['brand'].map(brand_aliases)
+
+# 计算每个品牌的平均价格
+brand_avg_prices = df.groupby('brand')['price'].mean()
+
+# 绘制价格图
+plt.figure(figsize=(12, 6))
+plt.bar(brand_avg_prices.index, brand_avg_prices.values, align='center', alpha=0.7)
+plt.xlabel('品牌')
+plt.ylabel('平均价格')
+plt.title('各品牌平均价格')
+plt.xticks(rotation=45, ha='right')  # 旋转品牌名，使其不重叠显示
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+```
+
+![](.images/5TdXH9whENxTG.png)
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# 设置中文字体路径，根据你的系统和字体文件路径进行修改
+font_path = 'C:/Windows/Fonts/msyh.ttc'  # 示例中使用微软雅黑字体，根据实际情况修改
+
+# 设置字体属性
+plt.rcParams['font.family'] = 'Microsoft YaHei'  # 设置全局字体为微软雅黑
+plt.rcParams['font.size'] = 12  # 设置全局字体大小
+
+# 文件路径
+file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+
+# 加载数据集
+df = pd.read_excel(file_path)
+
+# 车身类型映射
+body_type_mapping = {
+    0: '豪华轿车', 1: '微型车', 2: '厢型车', 3: '大巴车', 4: '敞篷车', 5: '双门汽车', 6: '商务车', 7: '搅拌车'
+}
+
+# 替换bodyType列为车身类型名称
+df['bodyType'] = df['bodyType'].map(body_type_mapping)
+
+# 计算每种车身类型的平均价格
+body_type_avg_prices = df.groupby('bodyType')['price'].mean()
+
+# 绘制价格图
+plt.figure(figsize=(10, 6))
+plt.bar(body_type_avg_prices.index, body_type_avg_prices.values, align='center', alpha=0.7)
+plt.xlabel('车身类型')
+plt.ylabel('平均价格')
+plt.title('不同车身类型的平均价格')
+plt.xticks(rotation=45)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+```
+
+![](.images/QhOBslOgKys4s.png)
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# 设置中文字体路径，根据你的系统和字体文件路径进行修改
+font_path = 'C:/Windows/Fonts/msyh.ttc'  # 示例中使用微软雅黑字体，根据实际情况修改
+
+# 设置字体属性
+plt.rcParams['font.family'] = 'Microsoft YaHei'  # 设置全局字体为微软雅黑
+plt.rcParams['font.size'] = 12  # 设置全局字体大小
+
+# 文件路径
+file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+
+# 加载数据集
+df = pd.read_excel(file_path)
+
+# 设置公里数区间和步长
+bins = [0, 3, 6, 9, 12, 15]
+
+# 划分公里数区间并计算每个区间的价格均值
+df['kilometer_bin'] = pd.cut(df['kilometer'], bins=bins)
+kilometer_avg_prices = df.groupby('kilometer_bin')['price'].mean()
+
+# 绘制公里数与价格的关系图
+plt.figure(figsize=(8, 6))
+plt.plot(kilometer_avg_prices.index.astype(str), kilometer_avg_prices.values, marker='o')
+plt.xlabel('公里数区间')
+plt.ylabel('平均价格')
+plt.title('不同公里数区间的平均价格')
+plt.xticks(rotation=45)
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+```
+
+<img src=".images/VUARonuWEUXnu.png" alt="" height="535"/>
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# 设置中文字体路径，根据你的系统和字体文件路径进行修改
+font_path = 'C:/Windows/Fonts/msyh.ttc'  # 示例中使用微软雅黑字体，根据实际情况修改
+
+# 设置字体属性
+plt.rcParams['font.family'] = 'Microsoft YaHei'  # 设置全局字体为微软雅黑
+plt.rcParams['font.size'] = 12  # 设置全局字体大小
+
+# 文件路径
+file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+
+# 加载数据集
+df = pd.read_excel(file_path)
+
+# 定义燃油类型映射
+fuel_type_mapping1 = {0: '汽油', 1: '柴油', 2: '其他'}
+fuel_type_mapping2 = {3: '天然气', 4: '混合动力', 5: '其他', 6: '电动'}
+
+# 替换fuelType列为燃油类型名称
+df['fuelType1'] = df['fuelType'].map(fuel_type_mapping1)
+df['fuelType2'] = df['fuelType'].map(fuel_type_mapping2)
+
+# 创建子图，一行两列
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# 第一个饼状图：汽油、柴油和其他
+fuel_type_counts1 = df[df['fuelType1'].isin(['汽油', '柴油', '其他'])]['fuelType1'].value_counts()
+axes[0].pie(fuel_type_counts1, labels=fuel_type_counts1.index, autopct='%1.1f%%', startangle=140)
+axes[0].set_title('汽油、柴油和其他燃油类型分布')
+axes[0].axis('equal')  # 保证饼状图是圆形
+
+# 第二个饼状图：液化石油气、天然气、混合动力、其他和电动
+fuel_type_counts2 = df[df['fuelType2'].isin(['天然气', '混合动力', '其他', '电动'])]['fuelType2'].value_counts()
+axes[1].pie(fuel_type_counts2, labels=fuel_type_counts2.index, autopct='%1.1f%%', startangle=140)
+axes[1].set_title('天然气、混合动力、其他和电动燃油类型分布')
+axes[1].axis('equal')  # 保证饼状图是圆形
+
+# 调整子图之间的间距
+plt.tight_layout()
+
+# 显示图形
+plt.show()
+
+```
+
+![](.images/EAvHf5tSh184D.png)
+
+
+
+
+
+
+
+
+
+
+
+## 8、读取第7步中处理好的数据，进修数据存储（mysql 或HDFS）；
+
+在mysql中建表
+
+```sql
+CREATE TABLE used_car_train (
+                                SaleID INT NOT NULL,
+                                name INT NOT NULL,
+                                regDate INT NOT NULL,
+                                model INT NOT NULL,
+                                brand INT NOT NULL,
+                                bodyType INT NOT NULL,
+                                fuelType INT NOT NULL,
+                                gearbox INT NOT NULL,
+                                power INT NOT NULL,
+                                kilometer FLOAT NOT NULL,
+                                notRepairedDamage INT NOT NULL,
+                                regionCode INT NOT NULL,
+                                creatDate INT NOT NULL,
+                                price INT NOT NULL
+);
+```
+
+python写入数据到mysql
+
+```python
+import pandas as pd
+from sqlalchemy import create_engine
+
+# 加载 Excel 文件
+excel_file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+df = pd.read_excel(excel_file_path)
+
+# 连接到 MySQL 数据库
+# 请根据实际情况修改数据库连接参数
+username = 'root'
+password = 'root'
+host = 'localhost'
+database = 'python_usedcars'
+table_name = 'used_car_train'
+
+engine = create_engine(f'mysql+pymysql://{username}:{password}@{host}/{database}')
+
+# 将数据写入 MySQL 数据库
+df.to_sql(name=table_name, con=engine, if_exists='replace', index=False)
+
+print("数据已成功写入 MySQL 数据库。")
+
+```
+
+## 9、（加分项）数据管理，使用JAVA语言对数据进行增删改查；
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 10、（超级加分）结合前端和Echarts API进行数据大屏可视化。
+
+```python
+
+import joblib
+import numpy as np
+import pandas as pd
+from pyecharts import options as opts
+from pyecharts.charts import Bar
+from pyecharts.charts import Page, Line, HeatMap, Pie
+from pyecharts.globals import ThemeType
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+
+# 文件路径
+file_path = 'X:\\data\\PythonData\\used_car_train_20200313_cleaned.xlsx'
+
+# 加载数据集
+df = pd.read_excel(file_path)
+
+# #############################创建模型################################################
+# 分离特征和目标变量
+X = df.drop(columns=['price', 'SaleID', 'name'])  # 排除 SaleID 和 name 列
+y = df['price']
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 训练线性回归模型
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# 在测试集上进行预测
+y_pred = model.predict(X_test)
+
+# 计算均方根误差（RMSE）
+rmse = mean_squared_error(y_test, y_pred)
+print(f"Root Mean Squared Error (RMSE): {rmse}")
+
+# 保存模型
+model_file = 'linear_regression_car_price_prediction_model.pkl'
+joblib.dump(model, model_file)
+print(f"模型已保存到 {model_file}")
+
+# #######################################创建车身类型平均价格柱状图#####################################
+# 车身类型映射
+body_type_mapping = {
+    0: '豪华轿车', 1: '微型车', 2: '厢型车', 3: '大巴车', 4: '敞篷车', 5: '双门汽车', 6: '商务车', 7: '搅拌车'
+}
+
+# 替换bodyType列为车身类型名称
+df['bodyType'] = df['bodyType'].map(body_type_mapping)
+
+# 计算每种车身类型的平均价格
+body_type_avg_prices = df.groupby('bodyType')['price'].mean().sort_values()
+
+bar_body_type = (
+    Bar()
+    .add_xaxis(body_type_avg_prices.index.tolist())
+    .add_yaxis("平均价格", body_type_avg_prices.values.tolist())
+    .set_global_opts(
+        title_opts=opts.TitleOpts(title="不同车身类型的平均价格"),
+        xaxis_opts=opts.AxisOpts(name="车身类型", axislabel_opts={"rotate": 45}),
+        yaxis_opts=opts.AxisOpts(name="平均价格"),
+        datazoom_opts=opts.DataZoomOpts()
+    )
+)
+
+# ##############################创建品牌平均价格柱状图#######################################
+# 品牌取别名
+brand_aliases = {
+    0: '哦迪', 1: '笨驰', 2: '短安', 3: '蜂田', 4: '包骂', 5: '扶特', 6: '学佛兰', 7: '鹿虎', 8: '骂自打', 9: '日崇',
+    10: '汽鸭', 11: '死爬虫', 12: '现台', 13: '类可三思', 14: '握尔沃', 15: '非亚特', 16: '灵蛇', 17: '别哭',
+    18: '打重', 19: '表智', 20: '学铁笼', 21: '接抱', 22: '压马哈', 23: '残利', 24: '鹿特司', 25: '发辣哩',
+    26: '握口哦号', 27: '啊三顿·骂丁', 28: '不加底', 29: '啊尔发·罗迷瓯', 30: '懒薄基尼', 31: '啊三顿·骂丁',
+    32: '发辣哩', 33: '握尔沃', 34: '扶特', 35: '笨驰', 36: '包骂', 37: '打重', 38: '狂犬', 39: '飞火'
+}
+
+# 替换品牌列为别名
+df['brand'] = df['brand'].map(brand_aliases)
+
+# 计算每个品牌的平均价格
+brand_avg_prices = df.groupby('brand')['price'].mean().sort_values()
+
+bar_brand = (
+    Bar()
+    .add_xaxis(brand_avg_prices.index.tolist())
+    .add_yaxis("平均价格", brand_avg_prices.values.tolist())
+    .set_global_opts(
+
+        title_opts=opts.TitleOpts(title="各品牌平均价格"),
+        xaxis_opts=opts.AxisOpts(name="品牌", axislabel_opts={"rotate": 45}),
+        yaxis_opts=opts.AxisOpts(name="平均价格"),
+        datazoom_opts=opts.DataZoomOpts(),
+
+    )
+)
+
+# #######################################创建公里数和价格的折线图######################################
+# 设置公里数区间和步长
+bins = [0, 3, 6, 9, 12, 15]
+
+# 划分公里数区间并计算每个区间的价格均值
+df['kilometer_bin'] = pd.cut(df['kilometer'], bins=bins)
+kilometer_avg_prices = df.groupby('kilometer_bin', observed=False)['price'].mean()
+
+# 转换索引为字符串格式
+kilometer_avg_prices.index = kilometer_avg_prices.index.astype(str)
+
+# 创建折线图
+line = (
+    Line()
+    .add_xaxis(kilometer_avg_prices.index.tolist())
+    .add_yaxis("平均价格", kilometer_avg_prices.values.tolist(), symbol='circle', symbol_size=8)
+    .set_global_opts(
+        title_opts=opts.TitleOpts(title="不同公里数区间的平均价格"),
+        xaxis_opts=opts.AxisOpts(type_="category", name="公里数区间", axislabel_opts=opts.LabelOpts(rotate=45)),
+        yaxis_opts=opts.AxisOpts(name="平均价格"),
+        tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="cross")
+    )
+    .set_series_opts(
+        markpoint_opts=opts.MarkPointOpts(
+            data=[opts.MarkPointItem(type_="max", name="最大值"),
+                  opts.MarkPointItem(type_="min", name="最小值")]
+        ),
+        markline_opts=opts.MarkLineOpts(
+            data=[opts.MarkLineItem(type_="average", name="平均值")]
+        )
+    )
+)
+# ########################################相关系数矩阵热力图#################################
+# 选择数值列
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+# 计算相关系数矩阵
+correlation_matrix = df[numeric_cols].corr()
+
+# 准备热力图数据
+x_axis = correlation_matrix.columns.tolist()
+y_axis = correlation_matrix.index.tolist()
+data = [
+    [i, j, correlation_matrix.iloc[i, j]]
+    for i in range(len(y_axis))
+    for j in range(len(x_axis))
+]
+
+# 创建热力图
+heatmap = (
+    HeatMap()
+    .add_xaxis(x_axis)
+    .add_yaxis(
+        "相关系数",
+        y_axis,
+        data,
+        label_opts=opts.LabelOpts(is_show=True, position="inside", formatter="{c:.2f}")
+    )
+    .set_global_opts(
+        title_opts=opts.TitleOpts(title="Correlation Heatmap of Car Features"),
+        visualmap_opts=opts.VisualMapOpts(min_=-1, max_=1, range_color=['#d73027', '#fee08b', '#1a9850']),
+        xaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(rotate=45)),
+        yaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(rotate=0)),
+    )
+)
+
+# ##############################饼图####################################
+# 定义燃油类型映射
+fuel_type_mapping1 = {0: '汽油', 1: '柴油', 2: '其他'}
+fuel_type_mapping2 = {3: '天然气', 4: '混合动力', 5: '其他', 6: '电动'}
+
+# 替换fuelType列为燃油类型名称
+df['fuelType1'] = df['fuelType'].map(fuel_type_mapping1)
+df['fuelType2'] = df['fuelType'].map(fuel_type_mapping2)
+
+# 计算第一个饼状图数据：汽油、柴油和其他
+fuel_type_counts1 = df[df['fuelType1'].isin(['汽油', '柴油', '其他'])]['fuelType1'].value_counts()
+
+# 计算第二个饼状图数据：天然气、混合动力、其他和电动
+fuel_type_counts2 = df[df['fuelType2'].isin(['天然气', '混合动力', '其他', '电动'])]['fuelType2'].value_counts()
+
+# 绘制第一个饼状图
+pie1 = (
+    Pie()
+    .add("", [list(z) for z in zip(fuel_type_counts1.index.tolist(), fuel_type_counts1.values.tolist())])
+    .set_global_opts(
+        title_opts=opts.TitleOpts(title="汽油、柴油和其他燃油类型分布", pos_left="center"),
+        legend_opts=opts.LegendOpts(orient="vertical", pos_left="left", pos_bottom="bottom"),
+    )
+    .set_series_opts(label_opts=opts.LabelOpts(formatter="{b}: {d}%"))
+)
+
+# 绘制第二个饼状图
+pie2 = (
+    Pie()
+    .add("", [list(z) for z in zip(fuel_type_counts2.index.tolist(), fuel_type_counts2.values.tolist())])
+    .set_global_opts(
+        title_opts=opts.TitleOpts(title="天然气、混合动力、其他和电动燃油类型分布", pos_left="center"),
+        legend_opts=opts.LegendOpts(orient="vertical", pos_left="left", pos_bottom="bottom"),
+    )
+    .set_series_opts(label_opts=opts.LabelOpts(formatter="{b}: {d}%"))
+)
+
+# ###########################随机森林#############################################
+# 读取线性回归特征重要性结果
+linear_importance_df = pd.read_csv('linear_regression_feature_importance.csv')
+
+# 生成线性回归特征重要性可视化图
+linear_bar = (
+    Bar()
+    .add_xaxis(linear_importance_df['Feature'].tolist())
+    .add_yaxis('Feature Importance', linear_importance_df['Importance'].tolist())
+    .reversal_axis()
+    .set_series_opts(label_opts=opts.LabelOpts(position="right"))
+    .set_global_opts(
+        title_opts=opts.TitleOpts(title="Feature Importance from Linear Regression"),
+        yaxis_opts=opts.AxisOpts(name='Feature'),
+        xaxis_opts=opts.AxisOpts(name='Coefficient Value')
+    )
+)
+linear_bar.render("linear_regression_feature_importance.html")
+
+# 读取随机森林特征重要性结果
+rf_importance_df = pd.read_csv('random_forest_feature_importance.csv')
+
+# 生成随机森林特征重要性可视化图
+rf_bar = (
+    Bar()
+    .add_xaxis(rf_importance_df['Feature'].tolist())
+    .add_yaxis('Feature Importance', rf_importance_df['Importance'].tolist())
+    .reversal_axis()
+    .set_series_opts(label_opts=opts.LabelOpts(position="right"))
+    .set_global_opts(
+        title_opts=opts.TitleOpts(title="Feature Importance from Random Forest"),
+        yaxis_opts=opts.AxisOpts(name='Feature'),
+        xaxis_opts=opts.AxisOpts(name='Importance')
+    )
+)
+
+# 创建 Page 并添加图表
+page = Page(layout=Page.SimplePageLayout)
+page.add(bar_body_type, bar_brand, line, pie1, heatmap, pie2, linear_bar, rf_bar)
+
+# 保存为 HTML 文件
+page.render("draggable_combined_chart.html")
+
+```
+
+![](.images/oFyG5RtVsjai2.png)
